@@ -4,15 +4,9 @@ services:
     runtime: python
     region: oregon
     plan: free
-
+    pythonVersion: "3.11.9"
     buildCommand: pip install -r requirements.txt
-
     startCommand: cd app && uvicorn main:app --host 0.0.0.0 --port $PORT
-
     envVars:
-      - key: ANTHROPIC_API_KEY
-        sync: false          # you'll set this in Render dashboard
       - key: MODEL_URL
-        sync: false          # HuggingFace model download URL
-      - key: PYTHON_VERSION
-        value: "3.11.0"
+        sync: false
