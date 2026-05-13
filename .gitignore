@@ -1,0 +1,57 @@
+# ── Virtual Environment ────────────────────────
+venv/
+.venv/
+env/
+ENV/
+
+# ── Python Cache ───────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# ── Model Files (too large for GitHub) ─────────
+*.h5
+*.keras
+*.pb
+*.onnx
+*.tflite
+saved_model/
+
+# ── Reports & Temp Files ───────────────────────
+reports/*.pdf
+*.pdf
+/tmp/
+
+# ── OS Files ───────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── IDE / Editor ───────────────────────────────
+.vscode/
+.idea/
+*.suo
+*.user
+
+# ── Environment Variables ──────────────────────
+.env
+.env.local
+*.env
+
+# ── Logs ───────────────────────────────────────
+*.log
+logs/
+
+# ── Dataset (too large for GitHub) ─────────────
+dataset/
+data/
+
+# ── Jupyter Notebooks checkpoints ──────────────
+.ipynb_checkpoints/
+
+# ── Build artifacts ────────────────────────────
+dist/
+build/
+*.egg-info/

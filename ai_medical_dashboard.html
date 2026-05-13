@@ -1,0 +1,1584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AI Medical Diagnosis System</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg:        #04080f;
+  --bg2:       #080e1a;
+  --bg3:       #0d1526;
+  --panel:     rgba(13,21,38,0.85);
+  --border:    rgba(56,120,255,0.15);
+  --border2:   rgba(56,120,255,0.3);
+  --blue:      #3878ff;
+  --blue2:     #5b9aff;
+  --cyan:      #00d4ff;
+  --green:     #00e5a0;
+  --amber:     #ffb547;
+  --red:       #ff4d6d;
+  --text:      #e8edf5;
+  --muted:     #6b7a99;
+  --muted2:    #8896b3;
+  --font-head: 'Syne', sans-serif;
+  --font-body: 'DM Sans', sans-serif;
+  --sidebar:   220px;
+  --radius:    14px;
+  --radius-sm: 8px;
+}
+
+*{margin:0;padding:0;box-sizing:border-box;}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 15px;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+body::before {
+  content:'';
+  position:fixed;
+  inset:0;
+  background-image:
+    linear-gradient(rgba(56,120,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(56,120,255,0.03) 1px, transparent 1px);
+  background-size: 48px 48px;
+  pointer-events:none;
+  z-index:0;
+}
+
+/* ── SIDEBAR ── */
+.sidebar {
+  position: fixed;
+  left:0; top:0; bottom:0;
+  width: var(--sidebar);
+  background: linear-gradient(180deg, #050a16 0%, #030710 100%);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 28px 14px;
+  z-index: 100;
+}
+
+.sidebar-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 36px;
+  padding: 0 6px;
+}
+
+.sidebar-logo-icon {
+  width: 34px; height: 34px;
+  background: linear-gradient(135deg, var(--blue), var(--cyan));
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.sidebar-logo-text { font-family: var(--font-head); font-size: 13px; font-weight: 700; color: var(--text); line-height: 1.2; }
+.sidebar-logo-sub  { font-size: 10px; color: var(--muted); font-weight: 400; }
+
+.nav-label {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  text-transform: uppercase;
+  font-weight: 600;
+  padding: 0 8px;
+  margin-bottom: 8px;
+}
+
+.nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: transparent;
+  color: var(--muted2);
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  font-weight: 400;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s;
+  margin-bottom: 2px;
+  position: relative;
+}
+.nav-btn:hover  { background: rgba(56,120,255,0.08); color: var(--text); }
+.nav-btn.active { background: rgba(56,120,255,0.14); color: var(--blue2); font-weight: 500; }
+.nav-btn.active::before {
+  content:'';
+  position:absolute;
+  left:0; top:20%; bottom:20%;
+  width:3px;
+  background: var(--blue);
+  border-radius: 0 3px 3px 0;
+}
+
+.nav-icon { font-size: 15px; width: 18px; text-align:center; flex-shrink:0; }
+
+.sidebar-bottom {
+  margin-top: auto;
+  padding: 12px;
+  background: rgba(0,229,160,0.06);
+  border: 1px solid rgba(0,229,160,0.15);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.status-dot {
+  width:8px; height:8px; border-radius:50%;
+  background: var(--green);
+  box-shadow: 0 0 8px var(--green);
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+@keyframes pulse-dot { 0%,100%{opacity:1;} 50%{opacity:0.5;} }
+.status-text { font-size:12px; color: var(--green); font-weight:500; }
+
+/* ── MAIN ── */
+.main { margin-left: var(--sidebar); min-height: 100vh; position: relative; z-index: 1; }
+
+.topbar {
+  height: 64px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 36px;
+  background: rgba(4,8,15,0.8);
+  backdrop-filter: blur(16px);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  gap: 16px;
+}
+
+.topbar-title {
+  font-family: var(--font-head);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  background: linear-gradient(90deg, var(--blue2), var(--cyan));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.topbar-sub { font-size: 12px; color: var(--muted); margin-left: auto; }
+
+.page-content { padding: 36px; display: none; animation: fadeIn 0.3s ease; }
+.page-content.active { display: block; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(8px);} to{opacity:1;transform:translateY(0);} }
+
+/* ── CARDS ── */
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  backdrop-filter: blur(12px);
+}
+.card-title {
+  font-family: var(--font-head);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.metric-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
+.metric-card {
+  background: rgba(13,21,38,0.9);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 18px 20px;
+  transition: border-color 0.2s;
+}
+.metric-card:hover { border-color: var(--border2); }
+.metric-label {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.metric-value { font-family: var(--font-head); font-size: 26px; font-weight: 700; color: var(--text); line-height: 1; }
+.metric-value.blue  { color: var(--blue2); }
+.metric-value.green { color: var(--green); }
+.metric-value.amber { color: var(--amber); }
+.metric-value.red   { color: var(--red); }
+
+/* ── UPLOAD ZONE ── */
+.upload-zone {
+  border: 2px dashed var(--border2);
+  border-radius: var(--radius);
+  padding: 56px 36px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.25s;
+  background: rgba(56,120,255,0.02);
+  position: relative;
+  overflow: hidden;
+}
+.upload-zone:hover, .upload-zone.drag-over { border-color: var(--blue); background: rgba(56,120,255,0.06); }
+.upload-icon { font-size: 48px; margin-bottom: 14px; display: block; opacity: 0.7; }
+.upload-title { font-family: var(--font-head); font-size: 18px; font-weight: 600; margin-bottom: 6px; }
+.upload-sub { font-size: 13px; color: var(--muted); }
+
+/* ── BUTTON ── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border-radius: var(--radius-sm);
+  border: none;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-primary { background: linear-gradient(135deg, var(--blue), #2457d4); color: white; }
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(56,120,255,0.35); }
+.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+.btn-outline { background: transparent; border: 1px solid var(--border2); color: var(--blue2); }
+.btn-outline:hover { background: rgba(56,120,255,0.08); }
+
+/* ── PROGRESS BAR ── */
+.progress-wrap { margin: 20px 0; }
+.progress-label { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+.progress-bar { height: 4px; background: rgba(56,120,255,0.12); border-radius: 2px; overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg, var(--blue), var(--cyan)); transition: width 0.1s linear; width: 0%; }
+
+.scan-status { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--muted2); margin-top: 10px; }
+.scan-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--cyan); animation: pulse-dot 0.8s ease-in-out infinite; }
+
+/* ── DIAGNOSIS RESULT ── */
+.result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 28px; }
+
+.xray-display {
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: #000;
+  min-height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+.xray-display img { width: 100%; height: auto; display: block; }
+.xray-label {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 11px;
+  color: var(--muted);
+  background: rgba(0,0,0,0.6);
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+.diag-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(56,120,255,0.08);
+  font-size: 14px;
+}
+.diag-row:last-child { border-bottom: none; }
+.diag-key { color: var(--muted2); font-size: 13px; }
+.diag-val { font-weight: 500; color: var(--text); }
+.diag-val.danger { color: var(--red); }
+.diag-val.warn   { color: var(--amber); }
+.diag-val.ok     { color: var(--green); }
+
+/* ── BADGE ── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.badge-red   { background:rgba(255,77,109,0.15); color:var(--red); border:1px solid rgba(255,77,109,0.25); }
+.badge-amber { background:rgba(255,181,71,0.15); color:var(--amber); border:1px solid rgba(255,181,71,0.25); }
+.badge-green { background:rgba(0,229,160,0.12); color:var(--green); border:1px solid rgba(0,229,160,0.2); }
+.badge-blue  { background:rgba(56,120,255,0.12); color:var(--blue2); border:1px solid rgba(56,120,255,0.2); }
+
+/* ── CONFIDENCE BAR ── */
+.conf-bar-wrap { margin-bottom: 14px; }
+.conf-bar-label { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px; color: var(--muted2); }
+.conf-bar-track { height: 8px; background: rgba(255,255,255,0.06); border-radius: 4px; overflow: hidden; }
+.conf-bar-fill  { height: 100%; border-radius: 4px; transition: width 1s cubic-bezier(0.4,0,0.2,1); }
+
+/* ── HEATMAP GRID ── */
+.heat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 20px; }
+.heat-img-wrap {
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: #000;
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+.heat-img-wrap img, .heat-img-wrap canvas { width:100%; height:100%; object-fit:cover; display:block; }
+.heat-caption { text-align: center; font-size: 12px; color: var(--muted); margin-top: 8px; }
+
+/* ── INTENSITY SLIDER ── */
+.slider-wrap {
+  padding: 20px;
+  background: rgba(56,120,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  margin-bottom: 24px;
+}
+.slider-label { font-size: 13px; color: var(--muted2); margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+.slider-val { font-family: var(--font-head); font-size: 15px; color: var(--blue2); font-weight: 600; }
+
+input[type=range] { -webkit-appearance:none; width:100%; height:4px; border-radius:2px; background:rgba(56,120,255,0.15); outline:none; }
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance:none; width:18px; height:18px; border-radius:50%;
+  background: var(--blue); cursor:pointer; border:3px solid var(--bg);
+  box-shadow:0 0 0 1px var(--blue); transition:transform 0.15s;
+}
+input[type=range]::-webkit-slider-thumb:hover { transform:scale(1.15); }
+
+/* ── PRECAUTION CARDS ── */
+.precaution-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+.prec-card {
+  padding: 20px; border-radius: var(--radius-sm); border: 1px solid var(--border);
+  background: rgba(13,21,38,0.7); transition: border-color 0.2s, transform 0.2s;
+}
+.prec-card:hover { border-color: var(--border2); transform: translateY(-2px); }
+.prec-card-title { font-family: var(--font-head); font-size: 14px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: var(--blue2); }
+.prec-item { font-size: 13px; color: var(--muted2); padding: 5px 0; border-bottom: 1px solid rgba(56,120,255,0.05); display: flex; align-items: flex-start; gap: 8px; line-height: 1.5; }
+.prec-item:last-child { border-bottom: none; }
+.prec-item::before { content:'▸'; color:var(--blue); flex-shrink:0; margin-top:1px; font-size:10px; }
+
+/* ── ALERT BANNER ── */
+.alert {
+  padding: 14px 18px; border-radius: var(--radius-sm); font-size: 13.5px;
+  margin-bottom: 20px; display: flex; align-items: flex-start; gap: 10px; line-height: 1.5;
+}
+.alert-warn   { background:rgba(255,181,71,0.08);  border:1px solid rgba(255,181,71,0.2); color:var(--amber); }
+.alert-danger { background:rgba(255,77,109,0.08);  border:1px solid rgba(255,77,109,0.2); color:var(--red); }
+.alert-ok     { background:rgba(0,229,160,0.07);   border:1px solid rgba(0,229,160,0.18); color:var(--green); }
+.alert-info   { background:rgba(56,120,255,0.07);  border:1px solid rgba(56,120,255,0.18); color:var(--blue2); }
+
+/* ── CHATBOT ── */
+.chat-wrap { display:flex; flex-direction:column; height:520px; border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; background:var(--panel); }
+.chat-messages { flex:1; overflow-y:auto; padding:20px; display:flex; flex-direction:column; gap:16px; scrollbar-width:thin; scrollbar-color:var(--border) transparent; }
+.msg { max-width:80%; animation:msgIn 0.25s ease; }
+@keyframes msgIn { from{opacity:0;transform:translateY(6px);} to{opacity:1;transform:translateY(0);} }
+.msg-user { align-self:flex-end; }
+.msg-bot  { align-self:flex-start; }
+.msg-bubble { padding:11px 15px; border-radius:12px; font-size:13.5px; line-height:1.55; }
+.msg-user .msg-bubble { background:linear-gradient(135deg,var(--blue),#2457d4); color:white; border-bottom-right-radius:4px; }
+.msg-bot  .msg-bubble { background:rgba(255,255,255,0.05); border:1px solid var(--border); color:var(--text); border-bottom-left-radius:4px; }
+.msg-label { font-size:11px; color:var(--muted); margin-bottom:4px; padding:0 4px; }
+.msg-user .msg-label { text-align:right; }
+
+.chat-input-row { display:flex; gap:10px; padding:14px 16px; border-top:1px solid var(--border); background:rgba(4,8,15,0.6); }
+.chat-input { flex:1; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:var(--radius-sm); padding:10px 14px; color:var(--text); font-family:var(--font-body); font-size:14px; outline:none; transition:border-color 0.2s; }
+.chat-input:focus { border-color:var(--border2); }
+.chat-input::placeholder { color:var(--muted); }
+
+/* ── REPORT ── */
+.report-preview { background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:var(--radius); padding:28px; }
+.report-header { text-align:center; padding-bottom:20px; border-bottom:1px solid var(--border); margin-bottom:20px; }
+.report-title { font-family:var(--font-head); font-size:20px; font-weight:700; letter-spacing:0.05em; margin-bottom:4px; }
+.report-meta { font-size:12px; color:var(--muted); }
+.report-section { margin-bottom:18px; padding-bottom:18px; border-bottom:1px solid rgba(56,120,255,0.06); }
+.report-section:last-child { border-bottom:none; margin-bottom:0; padding-bottom:0; }
+.report-section-title { font-size:11px; text-transform:uppercase; letter-spacing:0.1em; color:var(--muted); font-weight:600; margin-bottom:10px; }
+
+/* ── PERFORMANCE ── */
+.perf-row { display:flex; align-items:center; gap:14px; padding:10px 0; border-bottom:1px solid rgba(56,120,255,0.06); font-size:14px; }
+.perf-row:last-child { border-bottom:none; }
+.perf-name  { width:90px; color:var(--muted2); font-size:13px; }
+.perf-track { flex:1; height:6px; background:rgba(255,255,255,0.06); border-radius:3px; overflow:hidden; }
+.perf-fill  { height:100%; border-radius:3px; transition:width 1.2s cubic-bezier(0.4,0,0.2,1); }
+.perf-pct   { width:50px; text-align:right; font-family:var(--font-head); font-size:14px; font-weight:600; }
+
+/* ── SECTION TITLE ── */
+.section-title { font-family:var(--font-head); font-size:20px; font-weight:700; margin-bottom:6px; display:flex; align-items:center; gap:10px; }
+.section-sub   { font-size:13px; color:var(--muted); margin-bottom:28px; }
+.divider       { height:1px; background:var(--border); margin:28px 0; }
+
+/* ── ABOUT ── */
+.about-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:16px; }
+.about-card { padding:22px; border-radius:var(--radius-sm); border:1px solid var(--border); background:rgba(13,21,38,0.7); transition:border-color 0.2s; }
+.about-card:hover { border-color:var(--border2); }
+.about-card-icon  { font-size:24px; margin-bottom:12px; }
+.about-card-title { font-family:var(--font-head); font-size:14px; font-weight:600; margin-bottom:8px; color:var(--blue2); }
+.about-card-body  { font-size:13px; color:var(--muted2); line-height:1.6; }
+
+/* ── EMPTY STATE ── */
+.empty-state { text-align:center; padding:64px 32px; color:var(--muted); }
+.empty-icon  { font-size:48px; margin-bottom:14px; opacity:0.4; }
+.empty-title { font-family:var(--font-head); font-size:17px; color:var(--muted2); margin-bottom:6px; }
+.empty-sub   { font-size:13px; }
+
+/* ── TYPING INDICATOR ── */
+.typing { display:flex; align-items:center; gap:4px; padding:14px 16px; }
+.typing span { width:6px; height:6px; border-radius:50%; background:var(--muted); animation:bounce 1.2s ease-in-out infinite; }
+.typing span:nth-child(2){animation-delay:.2s;}
+.typing span:nth-child(3){animation-delay:.4s;}
+@keyframes bounce { 0%,60%,100%{transform:translateY(0);} 30%{transform:translateY(-8px);} }
+
+canvas { max-width:100%; }
+
+.xray-placeholder { display:flex; flex-direction:column; align-items:center; justify-content:center; height:300px; color:var(--muted); gap:10px; font-size:13px; }
+
+/* ── VIZ LOADING OVERLAY ── */
+.viz-loading {
+  position:absolute; inset:0;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  background:rgba(4,8,15,0.85); z-index:5;
+  font-size:12px; color:var(--muted2); gap:10px;
+}
+.viz-loading.hidden { display:none; }
+
+/* ── API ERROR ── */
+.api-error {
+  background:rgba(255,77,109,0.08); border:1px solid rgba(255,77,109,0.2); color:var(--red);
+  border-radius:var(--radius-sm); padding:12px 16px; font-size:13px; margin-top:12px;
+}
+</style>
+</head>
+<body>
+
+<!-- ============================  SIDEBAR  ============================= -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="sidebar-logo-icon">🩺</div>
+    <div>
+      <div class="sidebar-logo-text">MedAI</div>
+      <div class="sidebar-logo-sub">Diagnostic System</div>
+    </div>
+  </div>
+
+  <div class="nav-label">Clinical Tools</div>
+  <button class="nav-btn active" onclick="nav('app',this)"><span class="nav-icon">🏠</span> Dashboard</button>
+  <button class="nav-btn" onclick="nav('visualization',this)"><span class="nav-icon">🔬</span> Visualization</button>
+  <button class="nav-btn" onclick="nav('analysis',this)"><span class="nav-icon">📊</span> Analysis</button>
+  <button class="nav-btn" onclick="nav('precautions',this)"><span class="nav-icon">🛡</span> Precautions</button>
+
+  <div class="nav-label" style="margin-top:18px;">Reports & AI</div>
+  <button class="nav-btn" onclick="nav('report',this)"><span class="nav-icon">📄</span> Download Report</button>
+  <button class="nav-btn" onclick="nav('performance',this)"><span class="nav-icon">📈</span> Performance</button>
+  <button class="nav-btn" onclick="nav('chatbot',this)"><span class="nav-icon">💬</span> AI Doctor</button>
+  <button class="nav-btn" onclick="nav('about',this)"><span class="nav-icon">ℹ</span> About</button>
+
+  <div class="sidebar-bottom">
+    <div class="status-dot"></div>
+    <div class="status-text">AI Model Online</div>
+  </div>
+</aside>
+
+<!-- ============================  MAIN  ============================= -->
+<main class="main">
+
+  <div class="topbar">
+    <div class="topbar-title">AI MEDICAL DIAGNOSIS SYSTEM</div>
+    <div class="topbar-sub">Clinical AI Dashboard · X-ray Analysis Platform</div>
+  </div>
+
+  <!-- ===================== APP PAGE ===================== -->
+  <div class="page-content active" id="page-app">
+    <div class="section-title">📤 Upload X-ray &amp; Diagnose</div>
+    <div class="section-sub">Upload a chest X-ray image to begin AI-powered disease detection</div>
+
+    <div style="display:grid;grid-template-columns:1.3fr 1fr;gap:24px;">
+      <!-- Upload -->
+      <div>
+        <div class="upload-zone" id="dropZone"
+             onclick="document.getElementById('fileInput').click()"
+             ondrop="handleDrop(event)"
+             ondragover="handleDragOver(event)"
+             ondragleave="handleDragLeave(event)">
+          <span class="upload-icon">🩻</span>
+          <div class="upload-title">Drop X-ray image here</div>
+          <div class="upload-sub">or click to browse · JPG, PNG, JPEG · max 200 MB</div>
+          <input type="file" id="fileInput" accept=".jpg,.png,.jpeg" style="display:none" onchange="handleFile(this.files[0])"/>
+        </div>
+
+        <div style="margin-top:16px;display:flex;gap:10px;align-items:center;">
+          <button class="btn btn-primary" id="runBtn" onclick="runDiagnosis()" disabled>
+            <span>⚡</span> Run Diagnosis
+          </button>
+          <button class="btn btn-outline" onclick="clearAll()">Clear</button>
+        </div>
+
+        <div id="progressWrap" style="display:none;margin-top:20px;">
+          <div class="progress-wrap">
+            <div class="progress-label">
+              <span id="scanLabel">Initializing…</span>
+              <span id="scanPct">0%</span>
+            </div>
+            <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+          </div>
+          <div class="scan-status">
+            <div class="scan-dot"></div>
+            <span id="scanStatus">Processing image…</span>
+          </div>
+        </div>
+
+        <div id="appError" class="api-error" style="display:none;"></div>
+      </div>
+
+      <!-- Preview -->
+      <div class="xray-display" id="previewBox">
+        <div class="xray-placeholder">
+          <span style="font-size:36px;opacity:0.3">🩻</span>
+          <span>No image uploaded</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Diagnosis Result -->
+    <div id="diagResult" style="display:none;">
+      <div class="divider"></div>
+      <div class="section-title" style="font-size:17px;margin-bottom:20px;">🧠 Diagnosis Report</div>
+
+      <div class="result-grid">
+        <div>
+          <div class="xray-display">
+            <img id="resultImg" src="" alt="X-ray"/>
+            <div class="xray-label">Analyzed X-ray</div>
+          </div>
+        </div>
+        <div class="card" style="padding:20px;">
+          <div class="card-title">Clinical Findings</div>
+          <div id="alertBanner" class="alert alert-warn" style="margin-bottom:18px;"></div>
+          <div id="diagRows"></div>
+          <div class="divider" style="margin:16px 0;"></div>
+          <div style="font-size:13px;color:var(--muted2);margin-bottom:10px;font-weight:500;">AI Confidence Distribution</div>
+          <div id="confBars"></div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:24px;padding:24px;">
+        <div class="card-title">📊 AI Confidence Graph</div>
+        <canvas id="diagChart" height="80"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== VISUALIZATION PAGE ===================== -->
+  <div class="page-content" id="page-visualization">
+    <div class="section-title">🔬 Radiology Visualization</div>
+    <div class="section-sub">GradCAM heatmap analysis showing AI attention regions</div>
+
+    <div id="vizEmpty" class="empty-state">
+      <div class="empty-icon">🔬</div>
+      <div class="empty-title">No diagnosis yet</div>
+      <div class="empty-sub">Run a diagnosis first to see the heatmap visualization</div>
+    </div>
+
+    <div id="vizContent" style="display:none;">
+      <div class="slider-wrap">
+        <div class="slider-label">
+          <span>Heatmap Intensity</span>
+          <span class="slider-val" id="intensityVal">0.40</span>
+        </div>
+        <input type="range" min="10" max="100" value="40" oninput="onIntensityChange(this.value)" id="intensitySlider"/>
+      </div>
+
+      <div class="heat-grid">
+        <!-- Original -->
+        <div>
+          <div class="heat-img-wrap">
+            <img id="vizOrig" src="" alt="Original" style="width:100%;height:100%;object-fit:cover;"/>
+          </div>
+          <div class="heat-caption">Original X-ray</div>
+        </div>
+        <!-- Heatmap (real API image) -->
+        <div>
+          <div class="heat-img-wrap" style="background:#111;">
+            <div class="viz-loading" id="heatLoading">
+              <div class="typing"><span></span><span></span><span></span></div>
+              <span>Generating heatmap…</span>
+            </div>
+            <img id="vizHeatImg" src="" alt="AI Heatmap" style="width:100%;height:100%;object-fit:cover;display:none;"/>
+          </div>
+          <div class="heat-caption">AI Heatmap (GradCAM)</div>
+        </div>
+        <!-- Detection -->
+        <div>
+          <div class="heat-img-wrap">
+            <div class="viz-loading hidden" id="detectLoading">
+              <div class="typing"><span></span><span></span><span></span></div>
+            </div>
+            <canvas id="detectCanvas" width="350" height="350"></canvas>
+          </div>
+          <div class="heat-caption">Detected Regions</div>
+        </div>
+      </div>
+
+      <div id="vizError" class="api-error" style="display:none;margin-top:12px;"></div>
+
+      <div class="divider"></div>
+
+      <div class="metric-grid" style="grid-template-columns:repeat(3,1fr);">
+        <div class="metric-card">
+          <div class="metric-label">Infection Coverage</div>
+          <div class="metric-value amber" id="vizPercent">—</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Affected Region</div>
+          <div class="metric-value blue" id="vizRegion">—</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Clinical Insight</div>
+          <div class="metric-value" id="vizSeverity" style="font-size:14px;">—</div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:4px;">
+        <div class="card-title">🧠 AI Clinical Interpretation</div>
+        <p style="font-size:13.5px;color:var(--muted2);line-height:1.7;">
+          AI highlights regions with high activation where abnormalities are detected.
+          <strong style="color:var(--text)">Warmer areas (red/yellow)</strong> indicate stronger model attention and possible infection zones.
+          Cooler regions (blue/green) show lower activation probability.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== ANALYSIS PAGE ===================== -->
+  <div class="page-content" id="page-analysis">
+    <div class="section-title">📊 Clinical Analysis Report</div>
+    <div class="section-sub">Detailed AI interpretation and risk assessment</div>
+
+    <div id="analysisEmpty" class="empty-state">
+      <div class="empty-icon">📊</div>
+      <div class="empty-title">No diagnosis yet</div>
+      <div class="empty-sub">Run a diagnosis first to view clinical analysis</div>
+    </div>
+
+    <div id="analysisContent" style="display:none;">
+      <div class="metric-grid" id="analysisMetrics"></div>
+      <div style="display:grid;grid-template-columns:1.2fr 1fr;gap:24px;margin-bottom:24px;">
+        <div class="card">
+          <div class="card-title">📊 AI Confidence Distribution</div>
+          <canvas id="analysisChart" height="100"></canvas>
+        </div>
+        <div class="card">
+          <div class="card-title">⚖ Risk Assessment</div>
+          <div id="riskContent" style="padding-top:8px;"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">📌 Clinical Summary</div>
+        <p id="analysisSummary" style="font-size:14px;color:var(--muted2);line-height:1.7;"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== PRECAUTIONS PAGE ===================== -->
+  <div class="page-content" id="page-precautions">
+    <div class="section-title">🛡 Patient Care &amp; Precaution Plan</div>
+    <div class="section-sub">Personalized care guidance based on diagnosis</div>
+
+    <div id="precEmpty" class="empty-state">
+      <div class="empty-icon">🛡</div>
+      <div class="empty-title">No diagnosis yet</div>
+      <div class="empty-sub">Run a diagnosis first to view your care plan</div>
+    </div>
+
+    <div id="precContent" style="display:none;">
+      <div id="precAlert" class="alert" style="margin-bottom:24px;"></div>
+      <div class="precaution-grid" id="precGrid"></div>
+    </div>
+  </div>
+
+  <!-- ===================== REPORT PAGE ===================== -->
+  <div class="page-content" id="page-report">
+    <div class="section-title">📄 Medical Report Generation</div>
+    <div class="section-sub">Download a complete clinical report for your records</div>
+
+    <div id="reportEmpty" class="empty-state">
+      <div class="empty-icon">📄</div>
+      <div class="empty-title">No diagnosis yet</div>
+      <div class="empty-sub">Run a diagnosis first to generate your report</div>
+    </div>
+
+    <div id="reportContent" style="display:none;">
+      <div style="display:grid;grid-template-columns:1fr 1.2fr;gap:24px;margin-bottom:24px;">
+        <div class="xray-display" style="min-height:360px;">
+          <img id="reportImg" src="" style="width:100%;height:auto;"/>
+          <div class="xray-label">X-ray Image</div>
+        </div>
+        <div class="report-preview">
+          <div class="report-header">
+            <div class="report-title">🩺 MEDICAL REPORT</div>
+            <div class="report-meta" id="reportDate"></div>
+          </div>
+          <div class="report-section">
+            <div class="report-section-title">Diagnosis</div>
+            <div id="reportDiag" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+          </div>
+          <div class="report-section">
+            <div class="report-section-title">Clinical Findings</div>
+            <p id="reportFindings" style="font-size:13.5px;color:var(--muted2);line-height:1.6;"></p>
+          </div>
+          <div class="report-section">
+            <div class="report-section-title">Recommendations</div>
+            <p id="reportRec" style="font-size:13.5px;color:var(--green);line-height:1.6;"></p>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:12px;align-items:center;">
+        <button class="btn btn-primary" id="dlBtn" onclick="downloadReport()">
+          <span>⬇</span> Download Full Medical Report (PDF)
+        </button>
+        <button class="btn btn-outline" onclick="printReport()">🖨 Print Report</button>
+        <span id="dlStatus" style="font-size:13px;color:var(--muted2);"></span>
+      </div>
+
+      <div id="reportError" class="api-error" style="display:none;margin-top:12px;"></div>
+
+      <div class="alert alert-info" style="margin-top:16px;font-size:12.5px;">
+        ⚠ This AI-generated report is for informational purposes only. Always consult a licensed medical professional for diagnosis and treatment.
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== PERFORMANCE PAGE ===================== -->
+  <div class="page-content" id="page-performance">
+    <div class="section-title">📈 Model Performance Dashboard</div>
+    <div class="section-sub">Deep learning model accuracy metrics and evaluation</div>
+
+    <div class="metric-grid">
+      <div class="metric-card"><div class="metric-label">🎯 Accuracy</div><div class="metric-value green">94.2%</div></div>
+      <div class="metric-card"><div class="metric-label">🎯 Precision</div><div class="metric-value blue">92.0%</div></div>
+      <div class="metric-card"><div class="metric-label">🎯 Recall</div><div class="metric-value amber">91.0%</div></div>
+      <div class="metric-card"><div class="metric-label">🎯 F1 Score</div><div class="metric-value">91.5%</div></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1.2fr 1fr;gap:24px;margin-bottom:24px;">
+      <div class="card">
+        <div class="card-title">📊 Performance Comparison</div>
+        <canvas id="perfChart" height="100"></canvas>
+      </div>
+      <div class="card">
+        <div class="card-title">📉 Metric Breakdown</div>
+        <div id="perfRows" style="padding-top:8px;"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🧠 Model Interpretation</div>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-top:4px;">
+        <div style="padding:16px;background:rgba(0,229,160,0.05);border:1px solid rgba(0,229,160,0.12);border-radius:var(--radius-sm);">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.08em;">High Accuracy</div>
+          <div style="font-size:13px;color:var(--muted2);line-height:1.6;">Model predicts correctly in 94.2% of cases across all three disease classes.</div>
+        </div>
+        <div style="padding:16px;background:rgba(56,120,255,0.05);border:1px solid rgba(56,120,255,0.12);border-radius:var(--radius-sm);">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.08em;">Low False Positives</div>
+          <div style="font-size:13px;color:var(--muted2);line-height:1.6;">High precision (92%) means very few healthy X-rays are incorrectly classified as diseased.</div>
+        </div>
+        <div style="padding:16px;background:rgba(255,181,71,0.05);border:1px solid rgba(255,181,71,0.12);border-radius:var(--radius-sm);">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.08em;">Low Missed Cases</div>
+          <div style="font-size:13px;color:var(--muted2);line-height:1.6;">High recall (91%) ensures actual disease cases are rarely missed by the model.</div>
+        </div>
+        <div style="padding:16px;background:rgba(255,77,109,0.05);border:1px solid rgba(255,77,109,0.12);border-radius:var(--radius-sm);">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.08em;">Balanced F1</div>
+          <div style="font-size:13px;color:var(--muted2);line-height:1.6;">F1 score of 91.5% confirms an overall strong and balanced model performance.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== CHATBOT PAGE ===================== -->
+  <div class="page-content" id="page-chatbot">
+    <div class="section-title">💬 AI Doctor Assistant</div>
+    <div class="section-sub">Ask medical questions — powered by Claude AI</div>
+
+    <div style="display:grid;grid-template-columns:1fr 280px;gap:24px;">
+      <div class="chat-wrap">
+        <div class="chat-messages" id="chatMessages">
+          <div class="msg msg-bot">
+            <div class="msg-label">🩺 AI Doctor</div>
+            <div class="msg-bubble">Hello! I'm your AI medical assistant powered by Claude. I can help answer questions about your diagnosis, symptoms, medications, and general lung health. How can I help you today?</div>
+          </div>
+        </div>
+        <div class="chat-input-row">
+          <input type="text" class="chat-input" id="chatInput" placeholder="Ask a medical question…" onkeydown="if(event.key==='Enter')sendChat()"/>
+          <button class="btn btn-primary" onclick="sendChat()" style="padding:10px 18px;" id="sendBtn">Send</button>
+        </div>
+      </div>
+
+      <div>
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-title" style="font-size:13px;">💡 Quick Questions</div>
+          <div style="display:flex;flex-direction:column;gap:8px;" id="quickQs"></div>
+        </div>
+        <div class="card">
+          <div class="card-title" style="font-size:13px;">⚠ Disclaimer</div>
+          <p style="font-size:12px;color:var(--muted2);line-height:1.6;">This AI provides general guidance only. Always consult a licensed medical professional for diagnosis and treatment decisions.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== ABOUT PAGE ===================== -->
+  <div class="page-content" id="page-about">
+    <div class="section-title">ℹ About This System</div>
+    <div class="section-sub">AI-powered clinical decision support for radiological diagnosis</div>
+
+    <div class="alert alert-info" style="margin-bottom:28px;">
+      🚀 Developed as an AI-powered healthcare diagnostic solution using deep learning and GradCAM explainability.
+    </div>
+
+    <div class="about-grid">
+      <div class="about-card">
+        <div class="about-card-icon">🧠</div>
+        <div class="about-card-title">Project Overview</div>
+        <div class="about-card-body">An intelligent healthcare application designed to analyze chest X-ray images and detect lung diseases such as Pneumonia and Tuberculosis using deep learning.</div>
+      </div>
+      <div class="about-card">
+        <div class="about-card-icon">⚙</div>
+        <div class="about-card-title">Key Features</div>
+        <div class="about-card-body">AI-based X-ray detection · Real GradCAM heatmap visualization · Clinical interpretation · Automated PDF reports · Claude AI Doctor chatbot · Precaution planning.</div>
+      </div>
+      <div class="about-card">
+        <div class="about-card-icon">🔬</div>
+        <div class="about-card-title">Technologies</div>
+        <div class="about-card-body">Python · TensorFlow/Keras · OpenCV · GradCAM · ReportLab · Chart.js · FastAPI · Anthropic Claude API.</div>
+      </div>
+      <div class="about-card">
+        <div class="about-card-icon">🏥</div>
+        <div class="about-card-title">Real-World Impact</div>
+        <div class="about-card-body">Assists healthcare professionals in early disease detection, reduces diagnostic time, and provides clinical decision support — especially in areas with limited radiologist access.</div>
+      </div>
+      <div class="about-card">
+        <div class="about-card-icon">🚀</div>
+        <div class="about-card-title">How It Works</div>
+        <div class="about-card-body">1. Upload chest X-ray · 2. FastAPI /api/predict runs model · 3. Real GradCAM via /api/gradcam · 4. Clinical insights generated · 5. PDF report from /api/report/pdf.</div>
+      </div>
+      <div class="about-card">
+        <div class="about-card-icon">🎯</div>
+        <div class="about-card-title">Model Performance</div>
+        <div class="about-card-body">94.2% overall accuracy · 92% precision · 91% recall · 91.5% F1 score across Normal, Pneumonia, and Tuberculosis classification.</div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- ============================  JAVASCRIPT  ============================= -->
+<script>
+// ============================================================
+// STATE
+// ============================================================
+const state = {
+  file:         null,   // raw File object — kept for all API re-sends
+  imgSrc:       null,   // base64 data-URL for display
+  disease:      null,
+  confidence:   null,
+  preds:        null,
+  diagChart:    null,
+  analysisChart:null,
+  perfChart:    null,
+  gradcamData:  null,   // last GradCAM API response
+};
+
+const CLASS_NAMES = ['NORMAL','PNEUMONIA','TUBERCULOSIS'];
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+function nav(page, btn) {
+  document.querySelectorAll('.page-content').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  btn.classList.add('active');
+  refreshPage(page);
+}
+
+function refreshPage(page) {
+  if (page === 'visualization') renderViz();
+  if (page === 'analysis')      renderAnalysis();
+  if (page === 'precautions')   renderPrecautions();
+  if (page === 'report')        renderReport();
+  if (page === 'performance')   renderPerformance();
+  if (page === 'chatbot')       renderChatbot();
+}
+
+// ============================================================
+// FILE HANDLING
+// ============================================================
+function handleFile(file) {
+  if (!file) return;
+  state.file = file;
+  const reader = new FileReader();
+  reader.onload = e => {
+    state.imgSrc = e.target.result;
+    const box = document.getElementById('previewBox');
+    box.innerHTML = `<img src="${e.target.result}" style="width:100%;height:auto;border-radius:var(--radius);"/>`;
+    document.getElementById('runBtn').disabled = false;
+    document.getElementById('diagResult').style.display = 'none';
+    document.getElementById('appError').style.display = 'none';
+    state.disease = null;
+    state.gradcamData = null;
+  };
+  reader.readAsDataURL(file);
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('dropZone').classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) handleFile(file);
+}
+function handleDragOver(e)  { e.preventDefault(); document.getElementById('dropZone').classList.add('drag-over'); }
+function handleDragLeave(e) { document.getElementById('dropZone').classList.remove('drag-over'); }
+
+function clearAll() {
+  state.file = null; state.imgSrc = null; state.disease = null;
+  state.confidence = null; state.preds = null; state.gradcamData = null;
+  document.getElementById('previewBox').innerHTML = `<div class="xray-placeholder"><span style="font-size:36px;opacity:0.3">🩻</span><span>No image uploaded</span></div>`;
+  document.getElementById('runBtn').disabled = true;
+  document.getElementById('diagResult').style.display = 'none';
+  document.getElementById('progressWrap').style.display = 'none';
+  document.getElementById('appError').style.display = 'none';
+  document.getElementById('fileInput').value = '';
+}
+
+// ============================================================
+// DIAGNOSIS — calls real /api/predict endpoint
+// ============================================================
+async function runDiagnosis() {
+  if (!state.file) return;
+
+  document.getElementById('runBtn').disabled = true;
+  document.getElementById('progressWrap').style.display = 'block';
+  document.getElementById('diagResult').style.display = 'none';
+  document.getElementById('appError').style.display = 'none';
+
+  const msgs = [
+    [0,  30, '🔍 Processing image…'],
+    [30, 60, '🧠 Analyzing patterns…'],
+    [60, 90, '📊 Detecting abnormalities…'],
+    [90,100, '✅ Finalizing diagnosis…'],
+  ];
+
+  // Animate progress while API call runs
+  let pct = 0;
+  const fill  = document.getElementById('progressFill');
+  const lbl   = document.getElementById('scanStatus');
+  const pctEl = document.getElementById('scanPct');
+
+  // Run progress animation + API call in parallel
+  const progressDone = new Promise(resolve => {
+    const iv = setInterval(() => {
+      if (pct < 90) {           // hold at 90% until API responds
+        pct = Math.min(pct + 1, 90);
+        fill.style.width = pct + '%';
+        pctEl.textContent = pct + '%';
+        for (const [s,e,t] of msgs) { if (pct>=s && pct<e) lbl.textContent = t; }
+      }
+    }, 30);
+    resolve(iv);
+  });
+
+  const iv = await progressDone;
+
+  try {
+    const fd = new FormData();
+    fd.append('file', state.file);
+
+    const res  = await fetch('/api/predict', { method: 'POST', body: fd });
+    const data = await res.json();
+
+    if (!res.ok) throw new Error(data.detail || 'Prediction failed.');
+
+    // Complete progress bar
+    clearInterval(iv);
+    pct = 100;
+    fill.style.width = '100%';
+    pctEl.textContent = '100%';
+    lbl.textContent = '✅ Diagnosis complete!';
+
+    state.disease    = data.disease;
+    state.confidence = data.confidence;   // already 0-100 from backend
+    state.preds      = data.preds;        // [normal, pneumonia, tb] 0-1
+
+    setTimeout(() => {
+      document.getElementById('progressWrap').style.display = 'none';
+      showResult();
+      document.getElementById('runBtn').disabled = false;
+    }, 400);
+
+  } catch (err) {
+    clearInterval(iv);
+    document.getElementById('progressWrap').style.display = 'none';
+    document.getElementById('runBtn').disabled = false;
+    showAppError('❌ ' + err.message + ' — Make sure the FastAPI server is running and the model is loaded.');
+  }
+}
+
+function showAppError(msg) {
+  const el = document.getElementById('appError');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+// ============================================================
+// SHOW RESULT (renders diagnosis UI from state)
+// ============================================================
+function showResult() {
+  const { disease, confidence, preds, imgSrc } = state;
+
+  let alertClass, alertMsg, severity, condition, risk;
+
+  if (disease === 'NORMAL') {
+    severity='None'; condition='Healthy'; risk='Low';
+    alertClass='alert-ok';
+    alertMsg='✅ No significant abnormalities detected. Lung fields appear normal.';
+  } else if (disease === 'PNEUMONIA') {
+    severity='Moderate'; condition='Infection Detected'; risk='High';
+    alertClass='alert-warn';
+    alertMsg='⚠ Pneumonia detected. Immediate medical consultation advised.';
+  } else {
+    severity='High'; condition='Serious Infection'; risk='Critical';
+    alertClass='alert-danger';
+    alertMsg='🚨 Tuberculosis patterns detected. Urgent evaluation required.';
+  }
+
+  const affectedPct = (Math.max(...preds)*100).toFixed(2) + '%';
+
+  document.getElementById('resultImg').src = imgSrc;
+  document.getElementById('alertBanner').className = 'alert ' + alertClass;
+  document.getElementById('alertBanner').textContent = alertMsg;
+
+  const riskClass = risk==='Low'?'ok':risk==='Critical'?'danger':'warn';
+  document.getElementById('diagRows').innerHTML = `
+    <div class="diag-row"><span class="diag-key">Disease Detected</span><span class="diag-val">${disease}</span></div>
+    <div class="diag-row"><span class="diag-key">Severity</span><span class="diag-val">${severity}</span></div>
+    <div class="diag-row"><span class="diag-key">Confidence</span><span class="diag-val">${confidence.toFixed(2)}%</span></div>
+    <div class="diag-row"><span class="diag-key">Affected Region</span><span class="diag-val">Lung Region (${affectedPct})</span></div>
+    <div class="diag-row"><span class="diag-key">Condition</span><span class="diag-val">${condition}</span></div>
+    <div class="diag-row"><span class="diag-key">Risk Level</span><span class="diag-val ${riskClass}">${risk}</span></div>
+  `;
+
+  const barColors = ['#00e5a0','#3878ff','#ff4d6d'];
+  document.getElementById('confBars').innerHTML = CLASS_NAMES.map((n,i) => `
+    <div class="conf-bar-wrap">
+      <div class="conf-bar-label"><span>${n}</span><span>${(preds[i]*100).toFixed(1)}%</span></div>
+      <div class="conf-bar-track">
+        <div class="conf-bar-fill" style="width:${preds[i]*100}%;background:${barColors[i]}"></div>
+      </div>
+    </div>
+  `).join('');
+
+  document.getElementById('diagResult').style.display = 'block';
+
+  // Chart.js bar chart
+  if (state.diagChart) state.diagChart.destroy();
+  const ctx = document.getElementById('diagChart').getContext('2d');
+  state.diagChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: CLASS_NAMES,
+      datasets: [{
+        data: preds.map(p => +(p*100).toFixed(2)),
+        backgroundColor: ['rgba(0,229,160,0.3)','rgba(56,120,255,0.3)','rgba(255,77,109,0.3)'],
+        borderColor:      ['#00e5a0','#3878ff','#ff4d6d'],
+        borderWidth: 1.5, borderRadius: 6,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { min:0, max:100, ticks:{color:'#6b7a99',font:{size:12}}, grid:{color:'rgba(56,120,255,0.07)'} },
+        x: { ticks:{color:'#8896b3',font:{size:12}}, grid:{display:false} },
+      }
+    }
+  });
+}
+
+// ============================================================
+// VISUALIZATION — real /api/gradcam
+// ============================================================
+let _intensityDebounce = null;
+
+function onIntensityChange(val) {
+  document.getElementById('intensityVal').textContent = (val/100).toFixed(2);
+  clearTimeout(_intensityDebounce);
+  _intensityDebounce = setTimeout(() => fetchGradCAM(val/100), 500);
+}
+
+function renderViz() {
+  if (!state.file || !state.disease) {
+    document.getElementById('vizEmpty').style.display = 'block';
+    document.getElementById('vizContent').style.display = 'none';
+    return;
+  }
+  document.getElementById('vizEmpty').style.display = 'none';
+  document.getElementById('vizContent').style.display = 'block';
+  document.getElementById('vizOrig').src = state.imgSrc;
+
+  const alpha = parseFloat(document.getElementById('intensitySlider').value) / 100;
+  fetchGradCAM(alpha);
+}
+
+async function fetchGradCAM(alpha) {
+  if (!state.file) return;
+
+  // Show loading
+  document.getElementById('heatLoading').classList.remove('hidden');
+  document.getElementById('vizHeatImg').style.display = 'none';
+  document.getElementById('detectLoading').classList.remove('hidden');
+  document.getElementById('vizError').style.display = 'none';
+
+  try {
+    const fd = new FormData();
+    fd.append('file', state.file);
+    fd.append('intensity', alpha.toFixed(2));
+
+    const res  = await fetch('/api/gradcam', { method: 'POST', body: fd });
+    const data = await res.json();
+
+    if (!res.ok) throw new Error(data.detail || 'GradCAM failed.');
+
+    state.gradcamData = data;
+
+    // Show overlay image
+    document.getElementById('vizHeatImg').src = data.overlay_b64;
+    document.getElementById('vizHeatImg').style.display = 'block';
+    document.getElementById('heatLoading').classList.add('hidden');
+
+    // Draw detection boxes on canvas
+    drawDetectionBoxes(data.boxes);
+
+    // Update metrics
+    document.getElementById('vizPercent').textContent = data.infection_percent.toFixed(2) + '%';
+    document.getElementById('vizRegion').textContent   = data.region_label;
+    document.getElementById('vizSeverity').textContent = data.severity_label;
+
+  } catch (err) {
+    document.getElementById('heatLoading').classList.add('hidden');
+    document.getElementById('detectLoading').classList.add('hidden');
+    const el = document.getElementById('vizError');
+    el.textContent = '❌ ' + err.message;
+    el.style.display = 'block';
+  }
+}
+
+function drawDetectionBoxes(boxes) {
+  const canvas = document.getElementById('detectCanvas');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+
+  const img = new Image();
+  img.onload = () => {
+    ctx.clearRect(0, 0, W, H);
+    ctx.drawImage(img, 0, 0, W, H);
+
+    // boxes are in 224×224 space — scale to canvas
+    const sx = W / 224, sy = H / 224;
+
+    ctx.strokeStyle = 'rgba(56,200,255,0.9)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6, 3]);
+
+    if (boxes && boxes.length > 0) {
+      for (const [x, y, w, h] of boxes) {
+        ctx.strokeRect(x*sx, y*sy, w*sx, h*sy);
+      }
+    } else {
+      // No boxes: draw a subtle "clear" label
+      ctx.setLineDash([]);
+      ctx.fillStyle = 'rgba(0,229,160,0.8)';
+      ctx.font = '13px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('No significant regions', W/2, H - 16);
+    }
+
+    ctx.setLineDash([]);
+    document.getElementById('detectLoading').classList.add('hidden');
+  };
+  img.src = state.imgSrc;
+}
+
+// ============================================================
+// ANALYSIS (rendered from state, no extra API call)
+// ============================================================
+function renderAnalysis() {
+  if (!state.disease) {
+    document.getElementById('analysisEmpty').style.display = 'block';
+    document.getElementById('analysisContent').style.display = 'none';
+    return;
+  }
+  document.getElementById('analysisEmpty').style.display = 'none';
+  document.getElementById('analysisContent').style.display = 'block';
+
+  const { disease, confidence, preds } = state;
+  const severity = disease==='NORMAL'?'None':disease==='PNEUMONIA'?'Moderate':'High';
+  const risk     = disease==='NORMAL'?'Low':'High';
+
+  document.getElementById('analysisMetrics').innerHTML = `
+    <div class="metric-card"><div class="metric-label">🦠 Disease</div><div class="metric-value" style="font-size:18px;">${disease}</div></div>
+    <div class="metric-card"><div class="metric-label">⚠ Severity</div><div class="metric-value ${disease==='NORMAL'?'green':'red'}" style="font-size:18px;">${severity}</div></div>
+    <div class="metric-card"><div class="metric-label">📉 Risk Level</div><div class="metric-value ${risk==='Low'?'green':'red'}" style="font-size:18px;">${risk}</div></div>
+    <div class="metric-card"><div class="metric-label">📊 Confidence</div><div class="metric-value blue" style="font-size:18px;">${confidence.toFixed(2)}%</div></div>
+  `;
+
+  const summaries = {
+    NORMAL:      'No significant abnormalities detected. Lung fields appear clear and normal with no signs of infection or opacity.',
+    PNEUMONIA:   'Findings suggest the presence of pneumonia with localized lung opacity. The AI model identifies consolidation patterns consistent with bacterial or viral pneumonia. Immediate medical consultation is advised.',
+    TUBERCULOSIS:'Patterns consistent with tuberculosis infection have been detected. The model shows high activation in regions typical of TB lesions. Urgent evaluation and DOTS therapy initiation is recommended.',
+  };
+  document.getElementById('analysisSummary').textContent = summaries[disease];
+
+  const confAlert = confidence > 85
+    ? `<div class="alert alert-ok">✅ High confidence prediction. The model shows clear distinguishing features consistent with ${disease}.</div>`
+    : confidence > 65
+    ? `<div class="alert alert-warn">⚠ Moderate confidence. Some overlap between conditions may exist. Further evaluation recommended.</div>`
+    : `<div class="alert alert-danger">🚨 Low confidence prediction. Further medical evaluation is strongly recommended.</div>`;
+
+  const riskAlert = disease === 'NORMAL'
+    ? `<div class="alert alert-ok" style="margin-top:12px;">✅ No immediate medical concern. Maintain regular checkups.</div>`
+    : `<div class="alert alert-danger" style="margin-top:12px;">🚨 Immediate medical consultation advised. Do not delay treatment.</div>`;
+
+  document.getElementById('riskContent').innerHTML = confAlert + riskAlert;
+
+  if (state.analysisChart) state.analysisChart.destroy();
+  const ctx = document.getElementById('analysisChart').getContext('2d');
+  state.analysisChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: CLASS_NAMES,
+      datasets: [{
+        data: preds.map(p => +(p*100).toFixed(2)),
+        backgroundColor: ['rgba(0,229,160,0.25)','rgba(56,120,255,0.25)','rgba(255,77,109,0.25)'],
+        borderColor:      ['#00e5a0','#3878ff','#ff4d6d'],
+        borderWidth: 1.5, borderRadius: 6,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { min:0, max:100, ticks:{color:'#6b7a99',font:{size:11}}, grid:{color:'rgba(56,120,255,0.06)'} },
+        x: { ticks:{color:'#8896b3',font:{size:11}}, grid:{display:false} },
+      }
+    }
+  });
+}
+
+// ============================================================
+// PRECAUTIONS
+// ============================================================
+const PREC_DATA = {
+  NORMAL: {
+    alertClass:'alert-ok',
+    alertMsg:'✅ Healthy Condition Detected — No disease found.',
+    cards:[
+      {icon:'💊',title:'Medication',      items:['No medication required']},
+      {icon:'🥗',title:'Diet Plan',       items:['Balanced diet (fruits, vegetables, proteins)','Drink 2–3 liters of water daily']},
+      {icon:'🏃',title:'Physical Activity',items:['Daily walking (20–30 minutes)','Light cardio exercises']},
+      {icon:'🛌',title:'Daily Care',      items:['Maintain good sleep (7–8 hours)','Avoid smoking & pollution']},
+      {icon:'🧑‍⚕️',title:'Doctor Visits', items:['Routine check-up every 3–6 months']},
+      {icon:'⚠', title:'Precautions',    items:['Maintain hygiene','Monitor any unusual symptoms']},
+    ]
+  },
+  PNEUMONIA: {
+    alertClass:'alert-warn',
+    alertMsg:'⚠ Pneumonia Detected — Follow this care plan carefully.',
+    cards:[
+      {icon:'💊',title:'Medication',      items:['Complete prescribed antibiotics course','Take fever reducers if needed','Use inhalers if prescribed']},
+      {icon:'🥗',title:'Diet Plan',       items:['Warm fluids (soups, herbal tea)','High-protein foods (eggs, pulses)','Avoid cold food & drinks']},
+      {icon:'🏃',title:'Physical Activity',items:['Avoid heavy exercise','Practice breathing exercises']},
+      {icon:'🛌',title:'Daily Care',      items:['Take proper rest','Keep body warm','Use humidifier if needed']},
+      {icon:'🧑‍⚕️',title:'Doctor Visits', items:['Visit doctor at least twice a month','Monitor oxygen levels regularly']},
+      {icon:'⚠', title:'Precautions',    items:['Avoid cold exposure','Stay hydrated','Do not skip medication']},
+    ]
+  },
+  TUBERCULOSIS: {
+    alertClass:'alert-danger',
+    alertMsg:'🚨 Tuberculosis Detected — Strict adherence to this plan is critical.',
+    cards:[
+      {icon:'💊',title:'Medication',      items:['Strict TB medication (DOTS therapy)','Never skip doses','Continue full treatment duration']},
+      {icon:'🥗',title:'Diet Plan',       items:['High protein diet (milk, eggs, meat)','Vitamin-rich foods','Avoid junk food']},
+      {icon:'🏃',title:'Physical Activity',items:['Light exercise only','Breathing exercises']},
+      {icon:'🛌',title:'Daily Care',      items:['Maintain isolation (if infectious)','Use mask to prevent spread','Ensure proper ventilation']},
+      {icon:'🧑‍⚕️',title:'Doctor Visits', items:['Visit doctor every 2–4 weeks','Regular sputum tests & monitoring']},
+      {icon:'⚠', title:'Precautions',    items:['Avoid close contact with others','Maintain hygiene','Follow medication strictly']},
+    ]
+  }
+};
+
+function renderPrecautions() {
+  if (!state.disease) {
+    document.getElementById('precEmpty').style.display  = 'block';
+    document.getElementById('precContent').style.display = 'none';
+    return;
+  }
+  document.getElementById('precEmpty').style.display  = 'none';
+  document.getElementById('precContent').style.display = 'block';
+  const data = PREC_DATA[state.disease];
+  document.getElementById('precAlert').className = 'alert ' + data.alertClass;
+  document.getElementById('precAlert').textContent = data.alertMsg;
+  document.getElementById('precGrid').innerHTML = data.cards.map(c => `
+    <div class="prec-card">
+      <div class="prec-card-title">${c.icon} ${c.title}</div>
+      ${c.items.map(i=>`<div class="prec-item">${i}</div>`).join('')}
+    </div>
+  `).join('');
+}
+
+// ============================================================
+// REPORT — preview (no API call), download calls /api/report/pdf
+// ============================================================
+function _reportData() {
+  const { disease, confidence } = state;
+  const severity = disease==='NORMAL'?'None':disease==='PNEUMONIA'?'Moderate':'High';
+  const risk     = disease==='NORMAL'?'Low':'High';
+  const findings = {
+    NORMAL:       'No radiographic abnormalities detected. Lung fields appear clear.',
+    PNEUMONIA:    'Lung opacity indicating pneumonia infection detected in the lower lobes.',
+    TUBERCULOSIS: 'Patterns consistent with tuberculosis infection. Cavitary lesions suspected.',
+  }[disease];
+  const recommendation = {
+    NORMAL:       'Routine monitoring and healthy lifestyle maintenance.',
+    PNEUMONIA:    'Immediate medical consultation required. Antibiotic therapy may be needed.',
+    TUBERCULOSIS: 'Urgent TB diagnostic testing and DOTS treatment required. Isolation advised.',
+  }[disease];
+  return { severity, risk, findings, recommendation, confidence };
+}
+
+function renderReport() {
+  if (!state.disease) {
+    document.getElementById('reportEmpty').style.display   = 'block';
+    document.getElementById('reportContent').style.display = 'none';
+    return;
+  }
+  document.getElementById('reportEmpty').style.display   = 'none';
+  document.getElementById('reportContent').style.display = 'block';
+
+  const { disease } = state;
+  const { severity, risk, findings, recommendation, confidence } = _reportData();
+
+  document.getElementById('reportImg').src  = state.imgSrc;
+  document.getElementById('reportDate').textContent = 'Generated: ' + new Date().toLocaleDateString('en-GB',{year:'numeric',month:'long',day:'numeric'});
+
+  const rBadge = risk==='Low'?'badge-green':'badge-red';
+  document.getElementById('reportDiag').innerHTML = `
+    <span class="badge badge-blue">🦠 ${disease}</span>
+    <span class="badge badge-amber">⚠ ${severity}</span>
+    <span class="badge ${rBadge}">📉 ${risk} Risk</span>
+    <span class="badge badge-blue">📊 ${confidence.toFixed(1)}%</span>
+  `;
+  document.getElementById('reportFindings').textContent    = findings;
+  document.getElementById('reportRec').textContent         = recommendation;
+  document.getElementById('reportError').style.display     = 'none';
+  document.getElementById('dlStatus').textContent          = '';
+}
+
+async function downloadReport() {
+  if (!state.file || !state.disease) return;
+
+  const dlBtn    = document.getElementById('dlBtn');
+  const dlStatus = document.getElementById('dlStatus');
+  const errEl    = document.getElementById('reportError');
+
+  dlBtn.disabled    = true;
+  dlStatus.textContent = '⏳ Generating PDF…';
+  errEl.style.display  = 'none';
+
+  try {
+    const { severity, findings, recommendation, confidence } = _reportData();
+
+    const fd = new FormData();
+    fd.append('file',           state.file);
+    fd.append('disease',        state.disease);
+    fd.append('confidence',     confidence.toFixed(4));
+    fd.append('severity',       severity);
+    fd.append('findings',       findings);
+    fd.append('recommendation', recommendation);
+
+    const res = await fetch('/api/report/pdf', { method: 'POST', body: fd });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || 'PDF generation failed.');
+    }
+
+    const blob = await res.blob();
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url;
+    a.download = 'medical_report.pdf';
+    a.click();
+    URL.revokeObjectURL(url);
+
+    dlStatus.textContent = '✅ Downloaded!';
+    setTimeout(() => { dlStatus.textContent = ''; }, 3000);
+
+  } catch (err) {
+    errEl.textContent    = '❌ ' + err.message;
+    errEl.style.display  = 'block';
+    dlStatus.textContent = '';
+  } finally {
+    dlBtn.disabled = false;
+  }
+}
+
+function printReport() { window.print(); }
+
+// ============================================================
+// PERFORMANCE (static data, no API needed)
+// ============================================================
+function renderPerformance() {
+  if (state.perfChart) state.perfChart.destroy();
+
+  const metrics = ['Accuracy','Precision','Recall','F1 Score'];
+  const values  = [94.2, 92.0, 91.0, 91.5];
+  const colors  = ['#00e5a0','#3878ff','#ffb547','#5b9aff'];
+
+  const ctx = document.getElementById('perfChart').getContext('2d');
+  state.perfChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: metrics,
+      datasets: [{
+        data: values,
+        backgroundColor: colors.map(c => c+'44'),
+        borderColor: colors,
+        borderWidth: 1.5, borderRadius: 6,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { min:85, max:100, ticks:{color:'#6b7a99',font:{size:11}}, grid:{color:'rgba(56,120,255,0.06)'} },
+        x: { ticks:{color:'#8896b3',font:{size:11}}, grid:{display:false} },
+      }
+    }
+  });
+
+  document.getElementById('perfRows').innerHTML = metrics.map((m,i) => `
+    <div class="perf-row">
+      <span class="perf-name">${m}</span>
+      <div class="perf-track"><div class="perf-fill" style="width:${values[i]}%;background:${colors[i]}"></div></div>
+      <span class="perf-pct" style="color:${colors[i]}">${values[i]}%</span>
+    </div>
+  `).join('');
+}
+
+// ============================================================
+// CHATBOT — calls real /api/chat (Claude-powered on backend)
+// ============================================================
+function renderChatbot() {
+  const qs = [
+    'What medicine should I take?',
+    'What diet should I follow?',
+    'What are the symptoms?',
+    'What exercises help recovery?',
+    'Is my condition serious?',
+  ];
+  document.getElementById('quickQs').innerHTML = qs.map(q =>
+    `<button class="btn btn-outline" style="font-size:12px;padding:7px 12px;text-align:left;justify-content:flex-start;" onclick="quickChat('${q}')">${q}</button>`
+  ).join('');
+}
+
+function quickChat(q) {
+  document.getElementById('chatInput').value = q;
+  sendChat();
+}
+
+async function sendChat() {
+  const input  = document.getElementById('chatInput');
+  const sendBtn= document.getElementById('sendBtn');
+  const msg    = input.value.trim();
+  if (!msg) return;
+
+  input.value    = '';
+  input.disabled = true;
+  sendBtn.disabled = true;
+
+  appendMsg('You', msg, 'user');
+
+  // Typing indicator
+  const typing = document.createElement('div');
+  typing.className = 'msg msg-bot';
+  typing.id = 'typing';
+  typing.innerHTML = `<div class="msg-label">🩺 AI Doctor</div><div class="msg-bubble"><div class="typing"><span></span><span></span><span></span></div></div>`;
+  document.getElementById('chatMessages').appendChild(typing);
+  scrollChat();
+
+  try {
+    const fd = new FormData();
+    fd.append('message', msg);
+    fd.append('disease', state.disease || '');
+
+    const res  = await fetch('/api/chat', { method: 'POST', body: fd });
+    const data = await res.json();
+
+    document.getElementById('typing')?.remove();
+
+    if (!res.ok) throw new Error(data.detail || 'Chat error.');
+    appendMsg('AI Doctor', data.response, 'bot');
+
+  } catch (err) {
+    document.getElementById('typing')?.remove();
+    appendMsg('AI Doctor', '⚠ Could not reach the server. Please ensure FastAPI is running.', 'bot');
+  } finally {
+    input.disabled   = false;
+    sendBtn.disabled = false;
+    input.focus();
+  }
+}
+
+function appendMsg(sender, text, type) {
+  const div = document.createElement('div');
+  div.className = `msg msg-${type}`;
+  div.innerHTML = `<div class="msg-label">${type==='user'?'🧑 You':'🩺 AI Doctor'}</div><div class="msg-bubble">${text}</div>`;
+  document.getElementById('chatMessages').appendChild(div);
+  scrollChat();
+}
+
+function scrollChat() {
+  const msgs = document.getElementById('chatMessages');
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+// ============================================================
+// INIT
+// ============================================================
+window.addEventListener('load', () => {
+  renderPerformance();
+  renderChatbot();
+});
+</script>
+</body>
+</html>
