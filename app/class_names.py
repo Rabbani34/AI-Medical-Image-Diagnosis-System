@@ -1,0 +1,5 @@
+IMAGE_TYPES = ["xray", "mri", "skin", "retina"]
+XRAY_CLASSES = ["normal", "pneumonia", "tuberculosis"]
+MRI_CLASSES = ["normal", "tumor"]
+SKIN_CLASSES = ["normal", "cancer"]
+RETINA_CLASSES = ["normal", "diabetic_retinopathy"]
