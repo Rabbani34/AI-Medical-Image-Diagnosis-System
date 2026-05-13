@@ -3,20 +3,17 @@ fastapi>=0.111.0
 uvicorn[standard]>=0.29.0
 python-multipart>=0.0.9
 
-# ── AI / ML ────────────────────────────────────
-tensorflow>=2.15.0
-numpy==1.26.4
-opencv-python>=4.9.0
+# ── AI / ML (tf-cpu is lighter, works on Render free tier) ─────────────────
+tensorflow-cpu==2.13.0
+numpy==1.24.3
+opencv-python-headless>=4.8.0
 
 # ── Image processing ───────────────────────────
-pillow>=10.3.0
+pillow>=10.0.0
 
 # ── PDF generation ─────────────────────────────
-reportlab>=4.2.0
-
-# ── Claude AI chatbot ──────────────────────────
-anthropic>=0.28.0
+reportlab>=4.0.0
 
 # ── Misc ───────────────────────────────────────
-protobuf==4.25.3
-gunicorn>=22.0.0
+protobuf==4.23.4
+gunicorn>=21.0.0
